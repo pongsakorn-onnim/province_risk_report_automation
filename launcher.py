@@ -144,10 +144,10 @@ def main():
     print(f"  Region         : {region}")
     print()
 
-    confirm = questionary.confirm("Generate report?", default=True).ask()
-    if not confirm:
-        print("\n  Cancelled.")
-        input("\n  Press Enter to close...")
+    try:
+        input("  Press \033[1;32mEnter\033[0m to generate report (\033[33mCtrl+C\033[0m to cancel)  ")
+    except KeyboardInterrupt:
+        print("\n\n  Cancelled.")
         sys.exit(0)
 
     # Generate
