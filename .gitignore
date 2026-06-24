@@ -10,6 +10,11 @@ output/
 tmp_preview/
 inspection_pages/
 
+# PyInstaller build artifacts
+dist/
+build/
+*.spec
+
 # OS
 .DS_Store
 Thumbs.db

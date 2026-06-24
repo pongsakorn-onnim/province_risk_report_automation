@@ -1,9 +1,19 @@
+import os
 import sys
-import subprocess
+import logging
 from pathlib import Path
 
 import yaml
 import questionary
+
+# When running as a built .exe, __file__ doesn't exist — use exe location instead
+if getattr(sys, 'frozen', False):
+    ROOT = Path(sys.executable).parent
+else:
+    ROOT = Path(__file__).parent
+
+# Set working directory to project root so all relative paths inside ppt_builder work
+os.chdir(ROOT)
 
 ALL_PROVINCES = sorted([
     "กระบี่", "กรุงเทพมหานคร", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร",
@@ -33,12 +43,25 @@ REGIONS = [
     "ลุ่มน้ำเจ้าพระยา",
 ]
 
-ROOT = Path(__file__).parent
-
 
 def load_config() -> dict:
     with open(ROOT / "config.yaml", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def get_data_base_dir(cfg: dict) -> Path:
+    """
+    Primary: relative path from project folder to data folder (works for all PCs
+    once the project is in OneDrive under HydroDataSci\Project\).
+    Fallback: data_base_dir from config.yaml (used during development).
+    """
+    relative = ROOT.parent.parent / "Data" / "Risk_Area" / "Risk_Forecast" / "summary"
+    if relative.exists():
+        return relative
+    fallback = cfg.get("data_base_dir", "")
+    if fallback:
+        return Path(fallback)
+    return relative
 
 
 def scan_province_region(data_dir: Path, yyyymm: str) -> dict:
@@ -53,7 +76,6 @@ def scan_province_region(data_dir: Path, yyyymm: str) -> dict:
         for f in region_dir.glob(f"{yyyymm}summary_flood_drought_*.xlsx"):
             province = f.stem.replace(f"{yyyymm}summary_flood_drought_", "")
             mapping[province] = region_dir.name
-    # flat fallback (e.g. 202605 structure)
     for f in excel_dir.glob(f"{yyyymm}summary_flood_drought_*.xlsx"):
         province = f.stem.replace(f"{yyyymm}summary_flood_drought_", "")
         if province not in mapping:
@@ -62,8 +84,10 @@ def scan_province_region(data_dir: Path, yyyymm: str) -> dict:
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
     cfg = load_config()
-    base_data_dir = Path(cfg["data_base_dir"])
+    data_base_dir = get_data_base_dir(cfg)
 
     print()
     print("=" * 46)
@@ -79,7 +103,7 @@ def main():
     if yyyymm is None:
         sys.exit(0)
 
-    data_dir = base_data_dir / f"{yyyymm}_summary"
+    data_dir = data_base_dir / f"{yyyymm}_summary"
     if not data_dir.exists():
         print(f"\n  [!] Data directory not found:\n      {data_dir}")
         input("\n  Press Enter to close...")
@@ -126,21 +150,27 @@ def main():
         input("\n  Press Enter to close...")
         sys.exit(0)
 
+    # Generate
     print()
-    result = subprocess.run([
-        sys.executable, str(ROOT / "main.py"),
-        "--province", province,
-        "--region", region,
-        "--data-dir", str(data_dir),
-        "--yyyymm", yyyymm,
-    ])
-
-    print()
-    if result.returncode == 0:
+    try:
+        from src.ppt_builder import build_report
+        year = int(yyyymm[:4])
+        start_month = int(yyyymm[4:6])
+        out = build_report(
+            config=cfg,
+            province=province,
+            region=region,
+            data_dir=data_dir,
+            yyyymm=yyyymm,
+            year=year,
+            start_month=start_month,
+            output_dir=ROOT / "output",
+        )
+        print()
         print("  Done! Saved to:")
-        print(f"  output\\{yyyymm}_{province}_FloodDrought_report.pptx")
-    else:
-        print("  Report generation failed. See output above.")
+        print(f"  {out}")
+    except Exception as e:
+        print(f"\n  [!] Report generation failed: {e}")
 
     input("\n  Press Enter to close...")
 
