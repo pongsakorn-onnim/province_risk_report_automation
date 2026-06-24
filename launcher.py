@@ -1,0 +1,149 @@
+import sys
+import subprocess
+from pathlib import Path
+
+import yaml
+import questionary
+
+ALL_PROVINCES = sorted([
+    "กระบี่", "กรุงเทพมหานคร", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร",
+    "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ชัยนาท",
+    "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง",
+    "ตราด", "ตาก", "นครนายก", "นครปฐม", "นครพนม",
+    "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส",
+    "น่าน", "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์",
+    "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา",
+    "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์",
+    "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน",
+    "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง",
+    "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย",
+    "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ",
+    "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี",
+    "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย",
+    "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์",
+    "อุทัยธานี", "อุบลราชธานี",
+])
+
+REGIONS = [
+    "เหนือ",
+    "ตะวันออกเฉียงเหนือ",
+    "กลาง",
+    "ตะวันออก",
+    "ใต้",
+    "ลุ่มน้ำเจ้าพระยา",
+]
+
+ROOT = Path(__file__).parent
+
+
+def load_config() -> dict:
+    with open(ROOT / "config.yaml", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def scan_province_region(data_dir: Path, yyyymm: str) -> dict:
+    """Return {province: region} by scanning excel/ subdirectories."""
+    excel_dir = data_dir / "excel"
+    mapping = {}
+    if not excel_dir.exists():
+        return mapping
+    for region_dir in excel_dir.iterdir():
+        if not region_dir.is_dir():
+            continue
+        for f in region_dir.glob(f"{yyyymm}summary_flood_drought_*.xlsx"):
+            province = f.stem.replace(f"{yyyymm}summary_flood_drought_", "")
+            mapping[province] = region_dir.name
+    # flat fallback (e.g. 202605 structure)
+    for f in excel_dir.glob(f"{yyyymm}summary_flood_drought_*.xlsx"):
+        province = f.stem.replace(f"{yyyymm}summary_flood_drought_", "")
+        if province not in mapping:
+            mapping[province] = None
+    return mapping
+
+
+def main():
+    cfg = load_config()
+    base_data_dir = Path(cfg["data_base_dir"])
+
+    print()
+    print("=" * 46)
+    print("   Province Risk Report Generator")
+    print("=" * 46)
+    print()
+
+    # Forecast month
+    yyyymm = questionary.text(
+        "Forecast month (YYYYMM, e.g. 202606):",
+        validate=lambda v: True if (len(v) == 6 and v.isdigit()) else "Enter 6 digits, e.g. 202606",
+    ).ask()
+    if yyyymm is None:
+        sys.exit(0)
+
+    data_dir = base_data_dir / f"{yyyymm}_summary"
+    if not data_dir.exists():
+        print(f"\n  [!] Data directory not found:\n      {data_dir}")
+        input("\n  Press Enter to close...")
+        sys.exit(1)
+
+    available = scan_province_region(data_dir, yyyymm)
+
+    # Province
+    province = questionary.autocomplete(
+        "Province (type to filter):",
+        choices=ALL_PROVINCES,
+        match_middle=True,
+        validate=lambda v: True if v in ALL_PROVINCES else "Select a province from the list",
+    ).ask()
+    if province is None:
+        sys.exit(0)
+
+    # Region: auto-detect from data dir, or ask
+    region = available.get(province)
+    if province not in available:
+        print(f"\n  [!] No data found for {province} in {yyyymm}.")
+        print("      Slides with missing data will show placeholder images.\n")
+        region = questionary.select("Region:", choices=REGIONS).ask()
+        if region is None:
+            sys.exit(0)
+    elif region is None:
+        region = questionary.select(
+            "Region (could not auto-detect — flat data structure):",
+            choices=REGIONS,
+        ).ask()
+        if region is None:
+            sys.exit(0)
+
+    # Confirm
+    print()
+    print(f"  Forecast month : {yyyymm}")
+    print(f"  Province       : {province}")
+    print(f"  Region         : {region}")
+    print()
+
+    confirm = questionary.confirm("Generate report?", default=True).ask()
+    if not confirm:
+        print("\n  Cancelled.")
+        input("\n  Press Enter to close...")
+        sys.exit(0)
+
+    print()
+    result = subprocess.run([
+        sys.executable, str(ROOT / "main.py"),
+        "--province", province,
+        "--region", region,
+        "--data-dir", str(data_dir),
+        "--yyyymm", yyyymm,
+    ])
+
+    print()
+    if result.returncode == 0:
+        print("  Done! Saved to:")
+        print(f"  output\\{yyyymm}_{province}_FloodDrought_report.pptx")
+    else:
+        print("  Report generation failed. See output above.")
+
+    input("\n  Press Enter to close...")
+
+
+if __name__ == "__main__":
+    main()

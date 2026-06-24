@@ -1,6 +1,9 @@
 template_path: "template/template.pptx"
 output_dir: "output"
 
+# Update this path if the OneDrive location differs on this PC
+data_base_dir: "D:\\HII\\OneDrive\\HydroDataSci\\Data\\Risk_Area\\Risk_Forecast\\summary"
+
 shapes:
   cover:
     date_text:   "cover_date"
