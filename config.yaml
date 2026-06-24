@@ -1,0 +1,81 @@
+template_path: "template/template.pptx"
+output_dir: "output"
+
+shapes:
+  cover:
+    date_text:   "cover_date"
+    period_text: "cover_period"
+
+  national_summary:
+    all_map:       "nat_map_all"
+    flood_graph:   "nat_graph_flood"
+    drought_graph: "nat_graph_drought"
+    both_graph:    "nat_graph_both"
+
+  region_summary:
+    all_map:       "reg_map_all"
+    flood_graph:   "reg_graph_flood"
+    drought_graph: "reg_graph_drought"
+    both_graph:    "reg_graph_both"
+
+  province_6m_maps:
+    all_map:       "prov_map_all"
+    flood_graph:   "prov_graph_flood"
+    drought_graph: "prov_graph_drought"
+    both_graph:    "prov_graph_both"
+
+  province_6m_table: "prov_6m_table"
+
+  # Slides 8-13: one entry per month (lead 0-5); all use same shape names across slides
+  monthly:
+    - {map: "monthly_map", table: "monthly_table", title: "monthly_title"}  # June  (lead 0)
+    - {map: "monthly_map", table: "monthly_table", title: "monthly_title"}  # July  (lead 1)
+    - {map: "monthly_map", table: "monthly_table", title: "monthly_title"}  # Aug   (lead 2)
+    - {map: "monthly_map", table: "monthly_table", title: "monthly_title"}  # Sep   (lead 3)
+    - {map: "monthly_map", table: "monthly_table", title: "monthly_title"}  # Oct   (lead 4)
+    - {map: "monthly_map", table: "monthly_table", title: "monthly_title"}  # Nov   (lead 5)
+
+  flood_risk:
+    slide_key: "SLIDE_KEY_flood_risk_fcst_lead0_lead5"
+    title: "Txt_Title"
+    title_prefix: "สรุปพื้นที่เสี่ยงอุทกภัย"
+    url_pattern: "https://tiservice.hii.or.th/hds/data/rain_map/flood_drought_map/flood_map/{yyyymm}/{yyyymm}_step5_m{m}.png"
+    maps:
+      - "flood_risk_map_lead0"
+      - "flood_risk_map_lead1"
+      - "flood_risk_map_lead2"
+      - "flood_risk_map_lead3"
+      - "flood_risk_map_lead4"
+      - "flood_risk_map_lead5"
+
+  drought_risk:
+    slide_key: "SLIDE_KEY_drought_risk_fcst_lead0_lead5"
+    title: "Txt_Title"
+    title_prefix: "สรุปพื้นที่เสี่ยงภัยแล้งจากปริมาณฝน"
+    url_pattern: "https://tiservice.hii.or.th/hds/data/rain_map/flood_drought_map/drought_map/{yyyymm}/{yyyymm}_drought_m{m}.png"
+    maps:
+      - "drought_risk_map_lead0"
+      - "drought_risk_map_lead1"
+      - "drought_risk_map_lead2"
+      - "drought_risk_map_lead3"
+      - "drought_risk_map_lead4"
+      - "drought_risk_map_lead5"
+
+  combined_map:
+    flood_group:   "group_flood"
+    drought_group: "group_drought"
+    both_group:    "group_both"
+    flood_pic:     "flood_map"
+    drought_pic:   "drought_map"
+    both_pic:      "both_map"
+
+  national_table: "nat_6m_table"
+
+# Thai display name for each region directory name
+region_display:
+  เหนือ:                "ภาคเหนือ"
+  ตะวันออกเฉียงเหนือ:  "ภาคตะวันออกเฉียงเหนือ"
+  กลาง:                 "ภาคกลาง"
+  ตะวันออก:             "ภาคตะวันออก"
+  ใต้:                  "ภาคใต้"
+  ลุ่มน้ำเจ้าพระยา:    "ลุ่มน้ำเจ้าพระยา"

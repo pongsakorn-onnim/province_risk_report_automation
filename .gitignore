@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Generated output
+output/
+tmp_preview/
+inspection_pages/
+
+# OS
+.DS_Store
+Thumbs.db
