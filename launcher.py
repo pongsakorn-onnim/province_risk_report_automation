@@ -113,7 +113,7 @@ def main():
 
     # Province
     province = questionary.autocomplete(
-        "Province (type to filter):",
+        "Province (Thai name, e.g. เชียงใหม่):",
         choices=ALL_PROVINCES,
         match_middle=True,
         validate=lambda v: True if v in ALL_PROVINCES else "Select a province from the list",
@@ -145,7 +145,7 @@ def main():
     print()
 
     try:
-        input("  Press \033[1;32mEnter\033[0m to generate report (\033[33mCtrl+C\033[0m to cancel)  ")
+        input("  Press Enter to generate report  (Ctrl+C to cancel)  ")
     except KeyboardInterrupt:
         print("\n\n  Cancelled.")
         sys.exit(0)
